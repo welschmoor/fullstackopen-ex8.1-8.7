@@ -128,8 +128,8 @@ const typeDefs = gql`
       setBornTo: Int!
     ): Author
   }
+` //end typeDefs
 
-`
 
 const resolvers = {
   Query: {
@@ -139,6 +139,7 @@ const resolvers = {
     // ex8.2, 8.5 genre
     allBooks: (root, args) => {
       if (!args.author && !args.genre) {
+        console.log(books)
         return books
       }
       else if (!args.genre) {
