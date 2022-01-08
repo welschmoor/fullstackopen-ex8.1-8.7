@@ -107,6 +107,17 @@ const resolvers = {
   // 8.6
   Mutation: {
     addBook: async (root, args) => {
+
+      //ex 8.15
+      if (args.title.length < 3) {
+        throw new UserInputError("Book title WAAAAY too short!")
+        return
+      }
+      if (args.name.length < 5) {
+        throw new UserInputError("Author name WAAAAY too short!")
+        return
+      }
+
       const book = new Book({ ...args })
       const findAuthor = await Author.findOne({ name: args.name }) // if author not in DB 
       if (findAuthor) { // if author exists, we set book.author field to that author object
