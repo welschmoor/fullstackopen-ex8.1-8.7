@@ -13,7 +13,7 @@ const JWT_SECRET = 'adjDJWIhgfAJDggIWiwadja'
 
 console.log('connecting to', MONGODB_URI)
 // I have added { useNewUrlParser: true } because console said so, useUnifiedTopology: true 
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
   .then(() => {
     console.log('connected to MongoDB')
   })
@@ -56,7 +56,7 @@ const typeDefs = gql`
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]! #ex8.2 8.4 8.5
     allAuthors: [Author!]!
-    me: User
+    me: User!
   }
 
   type Mutation {
@@ -74,7 +74,7 @@ const typeDefs = gql`
 
     createUser(
       username: String!
-      # favoriteGenre: String!
+      favoriteGenre: String!
     ): User
 
     login(
@@ -92,6 +92,8 @@ const resolvers = {
   Query: {
     // ex 8.16
     me: (root, args, context) => {
+      console.log("currentUser", context.currentUser)
+      if (!context.currentUser) return null
       return context.currentUser
     },
 
@@ -99,7 +101,7 @@ const resolvers = {
     // ex8.3
     allAuthors: async () => {
       const authorlist = await Author.find({})
-      console.log(authorlist)
+
       return authorlist
     },
 
@@ -107,11 +109,11 @@ const resolvers = {
     allBooks: async (root, args) => {
       if (args.author) {
         const booklist = await Book.find({})
-        console.log("booklist", booklist)
+
         return Book.find({ author: { name: args.author } })
       }
       const booklist = await Book.find({})
-      console.log("booklist", booklist)
+
       return Book.find({}).populate('author') // woohoo this solved the query
     },
 
@@ -177,9 +179,9 @@ const resolvers = {
       return book
     },
 
-    
-    // ex 8.7
-    editAuthor: (root, args, context) => {
+
+    // ex 8.7 and later exercise 8.18
+    editAuthor: async (root, args, context) => {
       if (!args.name) { return null }
 
       const currentUser = context.currentUser
@@ -187,10 +189,16 @@ const resolvers = {
         throw new AuthenticationError("not authenticated")
       }
 
-      const filteredAuthors = authors.filter(e => e.name !== args.name)
-      const authorInQ = authors.find(e => e.name === args.name)
+      const authorInQ = await Author.findOne({ name: args.name })
+      console.log("authorInQ<><><>", authorInQ)
+
       authorInQ.born = args.setBornTo
-      console.log(filteredAuthors.concat(authorInQ))
+      try {
+        await authorInQ.save()
+      } catch (error) {
+        console.log(error)
+      }
+
       return authorInQ
     },
 
@@ -198,12 +206,14 @@ const resolvers = {
     // 8.16
     createUser: async (root, args) => {
       const user = new User({ username: args.username })
+      user.favoriteGenre = args.favoriteGenre
 
       try {
         await user.save()
       } catch (error) {
         throw new UserInputError(error.message, { invalidArgs: args })
       }
+      return user
     },
 
     login: async (root, args) => {
@@ -231,7 +241,8 @@ const server = new ApolloServer({
     const auth = req ? req.headers.authorization : null
     if (auth && auth.toLowerCase().startsWith('bearer ')) {
       const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
-      const currentUser = await User.findById(decodedToken.id).populate()
+      const currentUser = await User.findById(decodedToken.id)
+      console.log("contextUser", currentUser)
       return { currentUser }
     }
   },
