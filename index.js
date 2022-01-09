@@ -74,7 +74,7 @@ const typeDefs = gql`
 
     createUser(
       username: String!
-      favoriteGenre: String!
+      # favoriteGenre: String!
     ): User
 
     login(
@@ -177,6 +177,7 @@ const resolvers = {
       return book
     },
 
+    
     // ex 8.7
     editAuthor: (root, args, context) => {
       if (!args.name) { return null }
@@ -193,8 +194,9 @@ const resolvers = {
       return authorInQ
     },
 
+
     // 8.16
-    createUser: async () => {
+    createUser: async (root, args) => {
       const user = new User({ username: args.username })
 
       try {
@@ -236,6 +238,6 @@ const server = new ApolloServer({
 
 })
 
-server.listen().then(({ url }) => {
+server.listen(5000).then(({ url }) => {
   console.log(`Server ready at ${url}`)
 })
