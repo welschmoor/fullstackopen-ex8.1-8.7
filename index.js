@@ -97,7 +97,6 @@ const resolvers = {
       return context.currentUser
     },
 
-
     // ex8.3
     allAuthors: async () => {
       const authorlist = await Author.find({})
@@ -105,23 +104,30 @@ const resolvers = {
       return authorlist
     },
 
-    // ex8.2, 8.5 genre
+    // ex8.2, 8.5 genre, ex8.21
     allBooks: async (root, args) => {
-      if (args.author) {
-        const booklist = await Book.find({})
-
-        return Book.find({ author: { name: args.author } })
+      if (args.genre) {
+        const booklist = await Book.find({ genres: { $in: [args.genre] } }).populate('author')
+        return booklist
       }
-      const booklist = await Book.find({})
+      else if (args.author) {
+        const booklist = await Book.find({ author: { name: args.author } }).populate('author')
+        return booklist
+      }
+      else if (args.author && args.genre) {
+        const booklist = await Book.find({ genres: { $in: [args.genre] }, author: { name: args.author } }).populate('author')
+        return booklist
+      }
 
       return Book.find({}).populate('author') // woohoo this solved the query
     },
-
 
     // ex8.14
     bookCount: async () => await Book.collection.countDocuments(),
     authorCount: async () => await Author.collection.countDocuments(),
   },
+
+
 
   // ex 8.3, where name of the author matches we push it into array and count number of books in there
   Author: {
